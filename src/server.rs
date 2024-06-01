@@ -3,7 +3,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
-// use crate::{message::Message, utils::current_timestamp};
+use crate::models;
 
 
 #[tokio::main]
@@ -33,7 +33,9 @@ pub async fn run() {
                         let msg = msg.expect("Failed to read message");
                         if msg.is_text() {
                             let msg_text = msg.to_text().unwrap().to_string();
-                            tx.send((msg_text.clone(), addr)).unwrap();
+                            if let Ok(game_data) = serde_json::from_str::<models::GameData>(&msg_text) {
+                                tx.send((msg_text.clone(), addr)).unwrap();
+                            }
                         }
                     }
                     result = rx.recv() => {
