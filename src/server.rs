@@ -1,52 +1,49 @@
-use tokio::{io::{AsyncBufReadExt, AsyncWriteExt, BufReader}, net::TcpListener, sync::broadcast};
 
-use crate::{message::Message, utils::current_timestamp};
+use futures_util::{SinkExt, StreamExt};
+use tokio::{net::TcpListener, sync::broadcast};
+use tokio_tungstenite::{accept_async, tungstenite::Message};
 
+// use crate::{message::Message, utils::current_timestamp};
 
 
 #[tokio::main]
-pub async fn run(){
-    let addr = "127.0.0.1:3000";
+pub async fn run() {
+    let addr = "127.0.0.1:3000".to_string();
     let listener = TcpListener::bind(&addr).await.expect("Failed to bind");
 
-    println!("server is up on: {}", addr);
+    println!("Server is up on: {}", addr);
 
-    let (tx, _rx) = broadcast::channel(10);
+    let (tx, _) = broadcast::channel(10);
 
     loop {
-        let (mut socket, addr) = listener.accept().await.unwrap();
-
-        println!("New Server connection: {}", addr);
+        let (socket, addr) = listener.accept().await.unwrap();
+        println!("New connection: {}", addr);
 
         let tx = tx.clone();
         let mut rx = tx.subscribe();
 
         tokio::spawn(async move {
-            let (reader, mut writer) = socket.split();
+            let ws_stream = accept_async(socket).await.expect("Error during the websocket handshake occurred");
 
-            let mut reader = BufReader::new(reader);
-            let mut line = String::new();
+            let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
             loop {
                 tokio::select! {
-                    result = reader.read_line(&mut line) => {
-                        if result.unwrap() == 0 { // TODO change logic 
-                            break;
+                    Some(msg) = ws_receiver.next() => {
+                        let msg = msg.expect("Failed to read message");
+                        if msg.is_text() {
+                            let msg_text = msg.to_text().unwrap().to_string();
+                            tx.send((msg_text.clone(), addr)).unwrap();
                         }
-
-                        tx.send((line.clone(), addr)).unwrap();
-                        line.clear();
                     }
                     result = rx.recv() => {
                         let (msg, other_addr) = result.unwrap();
-
                         if addr != other_addr {
-                            writer.write_all(msg.as_bytes()).await.unwrap()
+                            ws_sender.send(Message::text(msg)).await.unwrap();
                         }
                     }
                 }
             }
-
         });
     }
 }
