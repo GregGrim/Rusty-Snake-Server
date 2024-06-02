@@ -27,6 +27,10 @@ impl GameData {
     pub fn remove_player(&mut self, player_id: &str) {
         self.players.retain(|player| player.player_id != player_id);
     }
+
+    pub fn set_food(&mut self, other: Point) {
+        self.food = other;
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -42,10 +46,23 @@ pub struct Point{
     y: i32
 }
 
+impl PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        if self.x == other.x && self.y == other.y {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl Eq for Point {}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Snake{
     direction: Direction,
-    body: Vec<Point>
+    body: Vec<Point>,
+    has_eaten: bool
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -5,7 +5,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::{net::TcpListener, sync::{broadcast, Mutex}};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
-use crate::models::{self, GameData};
+use crate::models::{self, GameData, Point};
 
 
 #[tokio::main]
@@ -44,16 +44,21 @@ pub async fn run() {
                                 if msg.is_text() {
                                     let msg_text = msg.to_text().unwrap().to_string();
                                     if let Ok(player_data) = serde_json::from_str::<models::PlayerData>(&msg_text) {
-
                                         {
                                             let mut active_clients = active_clients.lock().await;
                                             active_clients.insert(addr, player_data.player_id.clone());
                                         }
 
                                         client_id = Some(player_data.player_id.clone());
-
+                                    
                                         let mut game_data = game_data.lock().await;
                                         game_data.update(player_data);
+                                        let serialized_data = serde_json::to_string(&*game_data).unwrap();
+                                        tx.send((serialized_data, addr)).unwrap();
+
+                                    } else if let Ok(food_data) = serde_json::from_str::<Point>(&msg_text) {
+                                        let mut game_data = game_data.lock().await;
+                                        game_data.set_food(food_data);
                                         let serialized_data = serde_json::to_string(&*game_data).unwrap();
                                         tx.send((serialized_data, addr)).unwrap();
                                     }
