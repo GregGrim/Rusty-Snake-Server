@@ -23,12 +23,16 @@ impl GameData {
         }
         self.players.push(player_data);
     }
+
+    pub fn remove_player(&mut self, player_id: &str) {
+        self.players.retain(|player| player.player_id != player_id);
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerData{
-    player_id: String,
-    snake_position: Vec<Point>,
+    pub player_id: String,
+    snake: Snake,
     score: i32
 }
 
@@ -37,3 +41,18 @@ pub struct Point{
     x: i32,
     y: i32
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Snake{
+    direction: Direction,
+    body: Vec<Point>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right
+} 
+
