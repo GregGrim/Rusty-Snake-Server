@@ -85,6 +85,7 @@ pub async fn run() {
                     _ = interval.tick() => {
                         // game engine logic
                         let mut game_data = game_data.lock().await;
+                        game_data.remove_lost_players();
                         game_data.move_players();
                         game_data.check_players_collision();
                         game_data.check_player_obstacle_collision();

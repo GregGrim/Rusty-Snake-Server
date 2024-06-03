@@ -35,6 +35,10 @@ impl GameData {
         self.players.retain(|player| player.player_id != player_id);
     }
 
+    pub fn remove_lost_players(&mut self) {
+        self.players.retain(|player| !player.game_over);
+    }
+
     pub fn set_food(&mut self) {
         self.food = Point::gen_new();
     }
@@ -94,7 +98,7 @@ impl GameData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct PlayerData{
     player_id: String,
     snake: Snake,
@@ -172,7 +176,7 @@ impl Clone for Point {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum Direction {
     Up,
     Down,
@@ -211,7 +215,7 @@ impl Direction {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Snake {
     direction: Direction,
     body: Vec<Point>,
