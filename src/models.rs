@@ -152,8 +152,8 @@ pub struct Point {
 impl Point {
     pub fn gen_new() -> Point{
         let mut rng = rand::thread_rng();
-        let x: i32 = rng.gen_range(1..=20);
-        let y: i32 = rng.gen_range(1..=20);
+        let x: i32 = rng.gen_range(0..=19);
+        let y: i32 = rng.gen_range(0..=19);
         Point {x, y}
     }
 }
@@ -264,8 +264,8 @@ impl Snake {
         let head = &self.body[0];
         head.x < 0 || 
         head.y < 0 || 
-        head.x > 20 || 
-        head.y > 20
+        head.x > 19 || 
+        head.y > 19
     }
 
     pub fn check_collision(& self) -> bool {
