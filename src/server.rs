@@ -5,7 +5,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::{net::TcpListener, sync::{broadcast, Mutex}, time};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
-use crate::models::{GameData, PlayerAction};
+use crate::models::{Direction, GameData};
 use serde_json::Result;
 
 
@@ -49,29 +49,47 @@ pub async fn run() {
                             Ok(msg) => {
                                 if msg.is_text() {
                                     let msg_text = msg.to_text().unwrap().to_string();
-                                    if let Ok(player_action) = serde_json::from_str::<PlayerAction>(&msg_text) {
-                                        match player_action {
-                                            PlayerAction::PlayerConnected => {
-                                                let player_id = uuid::Uuid::new_v4().to_string();
-                                                {
-                                                    let mut active_clients = active_clients.lock().await;
-                                                    active_clients.insert(addr, player_id.clone());
+                                    if let Ok(request) = serde_json::from_str::<HashMap<String, String>>(&msg_text) {
+                                        if let Some(action) = request.get("action") {
+                                            match action.as_str() {
+                                                "player_connected" => {
+                                                    let player_id = uuid::Uuid::new_v4().to_string();
+                                                    {
+                                                        let mut active_clients = active_clients.lock().await;
+                                                        active_clients.insert(addr, player_id.clone());
+                                                    }
+                                                    client_id = Some(player_id.clone());
+                                                    let serialized_data = serde_json::to_string(&*player_id).unwrap();
+                                                    tx.send((serialized_data, addr)).unwrap();
                                                 }
-                                                client_id = Some(player_id.clone());
-                                                let serialized_data = serde_json::to_string(&*player_id).unwrap();
-                                                tx.send((serialized_data, addr)).unwrap();
-                                            }
-                                            PlayerAction::PlayerStartedGame(player_id) => {
-                                                let mut game_data = game_data.lock().await;
-                                                game_data.add_player(&player_id);
-                                                let serialized_data = serde_json::to_string(&*game_data).unwrap();
-                                                tx.send((serialized_data, addr)).unwrap();
-                                            }
-                                            PlayerAction::PlayerChangedDirection(player_id, direction) => {
-                                                let mut game_data = game_data.lock().await;
-                                                game_data.change_player_direction(&player_id, direction);
-                                                let serialized_data = serde_json::to_string(&*game_data).unwrap();
-                                                tx.send((serialized_data, addr)).unwrap();
+                                                "player_started_game" => {
+                                                    let mut game_data = game_data.lock().await;
+                                                    game_data.add_player(request.get("player_id").unwrap());
+                                                    let serialized_data = serde_json::to_string(&*game_data).unwrap();
+                                                    tx.send((serialized_data, addr)).unwrap();
+                                                }
+                                                "player_changed_direction" => {
+                                                    let mut game_data = game_data.lock().await;
+                                                    game_data.change_player_direction(
+                                                        request.get("player_id").unwrap(),
+                                                        Direction::map(request.get("direction").unwrap())
+                                                        );
+                                                    let serialized_data = serde_json::to_string(&*game_data).unwrap();
+                                                    tx.send((serialized_data, addr)).unwrap();
+                                                }
+                                                "player_disconnected" => {
+                                                    if let Some(id) = &client_id {
+                                                        let mut game_data = game_data.lock().await;
+                                                        game_data.remove_player(&id);
+                                                        let serialized_data = serde_json::to_string(&*game_data).unwrap();
+                                                        tx.send((serialized_data, addr)).unwrap();
+                                        
+                                                        let mut active_clients = active_clients.lock().await;
+                                                        active_clients.remove(&addr);
+                                                    }
+                                                    println!("Player disconnected: {}", addr);
+                                                }
+                                                _ => unreachable!()
                                             }
                                         }
                                     }
@@ -99,6 +117,7 @@ pub async fn run() {
                         let string_result: Result<String> = serde_json::from_str(&msg);
                         if let Ok(_) = string_result {
                             if addr == other_addr {
+                                println!("{}", msg);
                                 ws_sender.send(Message::text(msg)).await.unwrap();
                             }    
                         } else {
@@ -118,7 +137,7 @@ pub async fn run() {
                 let mut active_clients = active_clients.lock().await;
                 active_clients.remove(&addr);
             }
-            println!("Client disconnected: {}", addr);
+            println!("Player disconnected: {}", addr);
         });
     }
 }
