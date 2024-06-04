@@ -213,6 +213,13 @@ impl Direction {
             _ => unreachable!()
         }
     }
+    pub fn is_opposite(&self, other: &Direction) -> bool {
+        match (self, other) {
+            (Direction::Up, Direction::Down) | (Direction::Down, Direction::Up) |
+            (Direction::Left, Direction::Right) | (Direction::Right, Direction::Left) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -248,7 +255,9 @@ impl Snake {
     }
 
     pub fn change_direction(&mut self, new_direction: Direction) {
-        self.direction = new_direction
+        if !self.direction.is_opposite(&new_direction) {
+            self.direction = new_direction
+        }
     }
 
     fn self_collision(& self) -> bool {
