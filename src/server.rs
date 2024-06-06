@@ -5,7 +5,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::{net::TcpListener, sync::{broadcast, Mutex}, time};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
-use crate::models::{Direction, GameData};
+use crate::{models::{Direction, GameData}, utils::current_timestamp};
 use serde_json::Result;
 
 pub fn game_step(
@@ -35,7 +35,7 @@ pub async fn run() {
     let addr = "0.0.0.0:3000".to_string();
     let listener = TcpListener::bind(&addr).await.expect("Failed to bind");
 
-    println!("Server is up on: {}", addr);
+    println!("Server is up on: {};  {}", addr, current_timestamp());
 
     let (tx, _) = broadcast::channel(10);
 
@@ -45,7 +45,7 @@ pub async fn run() {
 
     loop {
         let (socket, addr) = listener.accept().await.unwrap();
-        println!("New connection: {}", addr);
+        println!("New connection: {};  {}", addr, current_timestamp());
 
         let tx = tx.clone();
         let mut rx = tx.subscribe();
@@ -115,7 +115,7 @@ pub async fn run() {
                             if addr == other_addr {
                                 println!("{}", msg);
                                 ws_sender.send(Message::text(msg)).await.expect(
-                                    format!("Failed to send player_id to {}", addr).as_str()
+                                    format!("Failed to send player_id to {};  {}", addr, current_timestamp()).as_str()
                                 );
                                 
                             }    
@@ -142,7 +142,7 @@ pub async fn run() {
                 let mut active_clients = active_clients.lock().await;
                 active_clients.remove(&addr);
             }
-            println!("Player disconnected: {}", addr);
+            println!("Player disconnected: {};  {}", addr, current_timestamp());
         });
     }
 }
