@@ -1,5 +1,4 @@
 mod server;
-mod message;
 mod utils;
 mod models;
 
