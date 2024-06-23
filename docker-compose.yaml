@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  rust_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/rastach-server
+    ports:
+      - "3000:3000"
+    command: ./target/release/rastach-server

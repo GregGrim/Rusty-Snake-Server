@@ -52,7 +52,7 @@ pub async fn run() {
                 game_step(&mut game_data);
                 let serialized_data = serde_json::to_string(&*game_data).unwrap();
                 if tx.send((serialized_data, "game_data".to_string())).is_err() {
-                    eprintln!("Error: Failed to broadcast game data");
+                    // eprintln!("Error: Failed to broadcast game data");
                 }
             }
         }
@@ -140,7 +140,7 @@ pub async fn run() {
                 game_data.remove_player(&id);
                 let serialized_data = serde_json::to_string(&*game_data).unwrap();
                 if tx.send((serialized_data, "game_data".to_string())).is_err() {
-                    eprintln!("Error: Failed to broadcast game data");
+                   // eprintln!("Error: Failed to broadcast game data");
                 }
 
                 let mut active_clients = active_clients.lock().await;
